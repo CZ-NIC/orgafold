@@ -1,0 +1,20 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "orgafold"
+version = "0.1.0"
+description = "Quickly handle a high number of files, perhaps obtained after a disk recovery."
+authors = ["Edvard Rejthar <edvard.rejthar@nic.cz>"]
+license = "GNU GPLv3"
+homepage = "https://github.com/CZ-NIC/orgafold"
+
+[tool.poetry.dependencies]
+python = ">=3.7"
+orgafold = { path = ".", develop = true }
+
+
+
+[tool.poetry.scripts]
+orgafold= "orgafold.__main__:main"
