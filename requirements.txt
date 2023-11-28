@@ -1,4 +1,0 @@
-fire
-humanize
-python-magic
-tqdm

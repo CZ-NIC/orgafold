@@ -2,11 +2,14 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from unittest import main
 
 import magic
 from humanize import naturalsize
 from pandas import DataFrame
 from tqdm import tqdm
+
+from .cmd import Cmd
 
 magic_mime = magic.Magic(mime=True)
 
@@ -15,18 +18,15 @@ def get_mime(file):
     return magic_mime.from_file(file).split("/")
 
 
-@dataclass  # TODO is not a dataclass
 class Folder:
-    suffixes: Counter
-    size: int
-    folder: Path
 
-    def __init__(self, path: str | Path, mime=False):
+    def __init__(self, path: str | Path, cmd: Cmd = None):
         self.folder = path = Path(path)
         files = list(path.rglob("*"))
+        mime_on = cmd.mime or cmd.subtype or cmd.mime_type
 
         columns = ['suffix', 'size', 'year', 'month']
-        if mime:
+        if mime_on:
             columns.extend(('mime', 'subtype', 'mime_type'))
             files = tqdm(files)
         stats = []
@@ -35,7 +35,7 @@ class Folder:
                 s = f.stat()
                 date = datetime.fromtimestamp(f.stat().st_mtime)
                 row = [f.suffix.lower() or "''", s.st_size, date.year, date.month]
-                if mime:
+                if mime_on:
                     m = get_mime(f)
                     row.extend((m[0], m[1], "/".join(m)))
                 stats.append(row)
@@ -81,18 +81,23 @@ class Folder:
         :yield: tuple: path to a source file, folder to be this file inserted to
         """
         for file in self.folder.glob("**/*" if recursive else "*"):
-            if file.exists() and file.is_file():
-                mask = subfolder or "-".join(filter(bool, (year and '%Y', month and '%m',
-                                             suffix and "$SUFFIX", mime and "$MIME")))  # ex: `%Y-%m-$SUFFIX`
-                # parse variables
-                mask = mask.replace("$SUFFIX", file.suffix.lstrip(".").lower() or "$MIME")
-                if "$MIME" in mask:
-                    mask = mask.replace("$MIME", get_mime(file)[0])
-                if "$MIME_SUBTYPE" in mask:
-                    mask = mask.replace("$MIME", get_mime(file)[1])
-                mask = str(datetime.fromtimestamp(file.stat().st_mtime).strftime(mask)) if "%" in mask else mask
-                # suggest a target dir including possible subfolder
-                yield file, Path(target_folder) / mask
+            if o := self.get_file_target(file, target_folder, year, month, suffix, mime, mime_subtype, subfolder):
+                yield o
+
+    @staticmethod
+    def get_file_target(file: Path, target_folder: str | Path, year=False, month=False, suffix=False, mime=False, mime_subtype=False, subfolder=""):
+        if file.exists() and file.is_file():
+            mask = subfolder or "-".join(filter(bool, (year and '%Y', month and '%m',
+                                                       suffix and "$SUFFIX", mime and "$MIME")))  # ex: `%Y-%m-$SUFFIX`
+            # parse variables
+            mask = mask.replace("$SUFFIX", file.suffix.lstrip(".").lower() or "$MIME")
+            if "$MIME" in mask:
+                mask = mask.replace("$MIME", get_mime(file)[0])
+            if "$MIME_SUBTYPE" in mask:
+                mask = mask.replace("$MIME", get_mime(file)[1])
+            mask = str(datetime.fromtimestamp(file.stat().st_mtime).strftime(mask)) if "%" in mask else mask
+            # suggest a target dir including possible subfolder
+            return file, Path(target_folder) / mask
 
     def get_target_folder(self, target_folder: str | Path, year=False):
         """
@@ -115,6 +120,22 @@ class Folder:
 
 @dataclass
 class FolderList:
+    """
+
+    TODO this class is not used right now. The functionality:
+from orgafold.merge import merge_directories
+
+KNOWN_EXTENSIONS = ".jpg", ".jpeg", ".png", ".arw", ".nef", ".avi", ".mp4", ".m4a", ".wav", ".aif", ".jp2", ".pages", ".mp3"
+# KNOWN_EXTENSIONS = ".txt",
+MIN_DIR_SIZE = 2000
+
+TARGET_FOLDER = False
+folders = FolderList(SOURCE_FOLDER)
+
+for path, target in tqdm(folders.loop(TARGET_FOLDER, year=True)):
+    merge_directories(path, target, run=True, move=True, rmdir=True, only_files=True)
+
+    """
 
     def __init__(self, source_folder: Path, subfolders_only: str = None):
         """
@@ -140,3 +161,6 @@ class FolderList:
 
     def inspect_by_size(self):
         return sorted(self.folders, key=lambda f: f.size, reverse=True)
+
+if __name__ == '__main__':
+    main()

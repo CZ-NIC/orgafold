@@ -4,17 +4,21 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "orgafold"
-version = "0.1.0"
+version = "0.2.0"
 description = "Quickly handle a high number of files, perhaps obtained after a disk recovery."
 authors = ["Edvard Rejthar <edvard.rejthar@nic.cz>"]
-license = "GNU GPLv3"
+license = "GPL-3.0-or-later"
 homepage = "https://github.com/CZ-NIC/orgafold"
+readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.7"
-orgafold = { path = ".", develop = true }
-
-
+python = ">=3.10"
+fire = "*"
+humanize = "*"
+inquirer = "*"
+pandas = "*"
+python-magic = "*"
+tqdm = "*"
 
 [tool.poetry.scripts]
 orgafold= "orgafold.__main__:main"

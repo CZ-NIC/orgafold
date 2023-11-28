@@ -14,7 +14,8 @@ def merge_file(source_file: Path, target_directory: Path, run=False, move=False)
         if run:
             try:
                 target_directory.mkdir(parents=True, exist_ok=True)
-            except (FileExistsError, NotADirectoryError):  # one of parent directories is a file XX our folder might get renamed
+            except (FileExistsError, NotADirectoryError):  # one of parent directories is a file
+                # XX our folder might get renamed to handle this
                 print(f"Cannot copy to {target_file}")
                 return
 
